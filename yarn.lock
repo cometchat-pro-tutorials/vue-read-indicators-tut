@@ -595,6 +595,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
+"@cometchat-pro/chat@^1.8.5":
+  version "1.8.5"
+  resolved "https://registry.yarnpkg.com/@cometchat-pro/chat/-/chat-1.8.5.tgz#b15cc80f3d8557eb4cb5a04c8e0262fb3b44a498"
+
 "@hapi/address@2.x.x":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@hapi/address/-/address-2.0.0.tgz#9f05469c88cb2fd3dcd624776b54ee95c312126a"
@@ -5085,6 +5089,10 @@ pluralize@^7.0.0:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/pluralize/-/pluralize-7.0.0.tgz#298b89df8b93b0221dbf421ad2b1b1ea23fc6777"
 
+popper.js@^1.15.0:
+  version "1.15.0"
+  resolved "https://registry.yarnpkg.com/popper.js/-/popper.js-1.15.0.tgz#5560b99bbad7647e9faa475c6b8056621f5a4ff2"
+
 portfinder@^1.0.20:
   version "1.0.21"
   resolved "https://registry.yarnpkg.com/portfinder/-/portfinder-1.0.21.tgz#60e1397b95ac170749db70034ece306b9a27e324"
@@ -6761,6 +6769,14 @@ uuid@^3.0.1, uuid@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.3.2.tgz#1b4af4955eb3077c501c23872fc6513811587131"
 
+v-tooltip@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/v-tooltip/-/v-tooltip-2.0.2.tgz#8610d9eece2cc44fd66c12ef2f12eec6435cab9b"
+  dependencies:
+    lodash "^4.17.11"
+    popper.js "^1.15.0"
+    vue-resize "^0.4.5"
+
 validate-npm-package-license@^3.0.1:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/validate-npm-package-license/-/validate-npm-package-license-3.0.4.tgz#fc91f6b9c7ba15c857f4cb2c5defeec39d4f410a"
@@ -6823,6 +6839,10 @@ vue-loader@^15.7.0:
     loader-utils "^1.1.0"
     vue-hot-reload-api "^2.3.0"
     vue-style-loader "^4.1.0"
+
+vue-resize@^0.4.5:
+  version "0.4.5"
+  resolved "https://registry.yarnpkg.com/vue-resize/-/vue-resize-0.4.5.tgz#4777a23042e3c05620d9cbda01c0b3cc5e32dcea"
 
 vue-router@^3.0.3:
   version "3.1.1"
