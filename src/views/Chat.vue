@@ -6,11 +6,10 @@
           <div class="msg-header">
               <div class="active">
                   <h5>#General 
-                <span class="fa fa-badge">
-                  <b>{{ unreadCount }}</b>
+                <span class="badge badge-danger" v-if="unreadCount">
+                  {{ unreadCount }}
                 </span>
               </h5>
-              <span class @click="logoutUser">Logout</span>
               </div>
           </div>
           <div class="chat-page">
@@ -59,7 +58,7 @@
                                          </svg>
                                       </div>
 
-                                      <div v-else-if="delivered && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
+                                        <div v-else-if="delivered && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
                                          <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="23" height="23" viewBox="0 0 226 226" style=" fill:#000000;">
                                             <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray
                                               stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal">
@@ -72,7 +71,7 @@
                                           </svg>
                                       </div>
 
-                                      <div  v-else-if="read && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
+                                      <div v-tooltip="{content: tipMessage,loadingContent: '<i>Loading...</i>',}" v-else-if="read && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
                                          <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="23" height="23" viewBox="0 0 226 226" style=" fill:#000000;">
                                           <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray
                                             stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal">
@@ -94,6 +93,7 @@
                       </div>
                   </div>
               </div>
+
               <div class="msg-bottom">
                 <form class="message-form" v-on:submit.prevent="sendGroupMessage">
                   <div class="input-group">
@@ -136,15 +136,16 @@ export default {
       sent: false,
       delivered: false,
       read: false,
-      unreadCount: 0
+      unreadCount: 0,
+      tipMessage: [],
     };
   },
 
   mounted() {
     this.loadingMessages = true;
     this.read = true;
-          this.delivered = false;
-          this.sent = false;
+    this.delivered = false;
+    this.sent = false;
     var listenerID = "UNIQUE_LISTENER_ID";
     const messagesRequest = new CometChat.MessagesRequestBuilder()
       .setLimit(100)
@@ -152,24 +153,20 @@ export default {
     messagesRequest.fetchPrevious().then(
       messages => {
         console.log("Message list fetched:", messages);
-        this.groupMessages = [...this.groupMessages, ...messages];
-        this.loadingMessages = false;
 
         messages.forEach(element => {
+          // Mark fetched content as read
           if (element.sender.uid != this.uid) {
             if (element.readByMeAt == undefined) {
               this.markMessageAsRead(element);
             }
-          
           }
-
-          // CometChat.getMessageReceipts(element.id).then(receipts => {
-          //     console.log("Message details fetched:", receipts);
-          // }, error => {
-          //     console.log("Error in getting messag details ", error)
-          // });
-
         });
+
+
+        this.groupMessages = [...this.groupMessages, ...messages];
+        this.loadingMessages = false;
+
 
         this.$nextTick(() => {
           this.scrollToBottom();
@@ -184,18 +181,9 @@ export default {
       new CometChat.MessageListener({
         onTextMessageReceived: textMessage => {
           console.log("Text message received successfully", textMessage);
-
           this.markMessageAsRead(textMessage);
 
-          // let messageId = 10101;
-          // CometChat.getMessageReceipts(messageId).then(receipts => {
-          //     console.log("Message details fetched:", receipts);
-          // }, error => {
-          //     console.log("Error in getting messag details ", error)
-          // });
-
           this.groupMessages = [...this.groupMessages, textMessage];
-          // console.log("avatar", textMessage.sender.avatar)
           this.loadingMessages = false;
           this.$nextTick(() => {
             this.scrollToBottom();
@@ -206,15 +194,22 @@ export default {
           this.read = false;
           this.delivered = true;
           this.sent = false;
-          console.log("MessageDelivered", { messageDelivered });
         },
         onMessageRead: messageRead => {
-          console.log("MessageRead", { messageRead });
-
           this.read = true;
           this.delivered = false;
           this.sent = false;
 
+          CometChat.getMessageReceipts(messageRead.messageId).then(receipts => {
+              console.log("Message details receipt fetched:", receipts);
+            
+              receipts.forEach(data => {
+                this.tipMessage = [...this.tipMessage, data.sender.uid]
+              });
+              
+          }, error => {
+              console.log("Error in getting messag details ", error)
+          });
         }
       })
     );
@@ -227,7 +222,6 @@ export default {
     CometChat.getUnreadMessageCountForGroup(GUID).then(
       data => {
         console.log("Message count fetched for unread", data);
-        console.log(data);
         this.unreadCount = data.supergroup;
       },
       error => {
@@ -243,7 +237,6 @@ export default {
           this.username = user.name;
           this.avatar = user.avatar;
           this.uid = user.uid;
-          console.log(this.uid);
         },
         error => {
           this.$router.push({
@@ -296,19 +289,103 @@ export default {
     scrollToBottom() {
       const chat = document.getElementById("msg-page");
       chat.scrollTo(0, chat.scrollHeight + 30);
-   },
-   logoutUser() {
-      CometChat.logout().then(
-        success => {
-          console.log("Logout completed successfully");
-          this.$router.push({ name: "homepage" });
-          console.log(success);
-        },
-        error => {
-          console.log("Logout failed with exception:", { error });
-        }
-      );
-    }
+   }
   }
 };
 </script>
+
+<style lang="scss">
+.tooltip {
+  display: block !important;
+  z-index: 10000;
+
+  .tooltip-inner {
+    background: black;
+    color: white;
+    border-radius: 16px;
+    padding: 5px 10px 4px;
+  }
+
+  .tooltip-arrow {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    position: absolute;
+    margin: 5px;
+    border-color: black;
+    z-index: 1;
+  }
+
+  &[x-placement^="top"] {
+    margin-bottom: 5px;
+
+    .tooltip-arrow {
+      border-width: 5px 5px 0 5px;
+      border-left-color: transparent !important;
+      border-right-color: transparent !important;
+      border-bottom-color: transparent !important;
+      bottom: -5px;
+      left: calc(50% - 5px);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+
+  &[x-placement^="bottom"] {
+    margin-top: 5px;
+
+    .tooltip-arrow {
+      border-width: 0 5px 5px 5px;
+      border-left-color: transparent !important;
+      border-right-color: transparent !important;
+      border-top-color: transparent !important;
+      top: -5px;
+      left: calc(50% - 5px);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+
+  &[x-placement^="right"] {
+    margin-left: 5px;
+
+    .tooltip-arrow {
+      border-width: 5px 5px 5px 0;
+      border-left-color: transparent !important;
+      border-top-color: transparent !important;
+      border-bottom-color: transparent !important;
+      left: -5px;
+      top: calc(50% - 5px);
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+
+  &[x-placement^="left"] {
+    margin-right: 5px;
+
+    .tooltip-arrow {
+      border-width: 5px 0 5px 5px;
+      border-top-color: transparent !important;
+      border-right-color: transparent !important;
+      border-bottom-color: transparent !important;
+      right: -5px;
+      top: calc(50% - 5px);
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+
+  &[aria-hidden='true'] {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity .15s, visibility .15s;
+  }
+
+  &[aria-hidden='false'] {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity .15s;
+  }
+}
+</style>
