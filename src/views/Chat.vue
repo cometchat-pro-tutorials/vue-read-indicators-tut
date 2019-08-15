@@ -71,7 +71,7 @@
                                           </svg>
                                       </div>
 
-                                      <div v-tooltip="{content: tipMessage,loadingContent: '<i>Loading...</i>',}" v-else-if="read && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
+                                      <div v-tooltip="{content: readers,loadingContent: '<i>Loading...</i>',}" v-else-if="read && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
                                          <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="23" height="23" viewBox="0 0 226 226" style=" fill:#000000;">
                                           <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray
                                             stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal">
@@ -137,7 +137,7 @@ export default {
       delivered: false,
       read: false,
       unreadCount: 0,
-      tipMessage: [],
+      readers: [],
     };
   },
 
@@ -155,7 +155,6 @@ export default {
         console.log("Message list fetched:", messages);
 
         messages.forEach(element => {
-          // Mark fetched content as read
           if (element.sender.uid != this.uid) {
             if (element.readByMeAt == undefined) {
               this.markMessageAsRead(element);
@@ -190,6 +189,7 @@ export default {
           });
         },
         onMessageDelivered: messageDelivered => {
+          console.log("Message has been delivered ", messageDelivered);
           this.messageId = messageDelivered.messageId;
           this.read = false;
           this.delivered = true;
@@ -200,12 +200,16 @@ export default {
           this.delivered = false;
           this.sent = false;
 
+          let messageReaders = [];
+
           CometChat.getMessageReceipts(messageRead.messageId).then(receipts => {
               console.log("Message details receipt fetched:", receipts);
             
               receipts.forEach(data => {
-                this.tipMessage = [...this.tipMessage, data.sender.uid]
+                messageReaders = [...messageReaders, data.sender.uid]
               });
+
+              this.readers = [...new Set(messageReaders)];
               
           }, error => {
               console.log("Error in getting messag details ", error)
