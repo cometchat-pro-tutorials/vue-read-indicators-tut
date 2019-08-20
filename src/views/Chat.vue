@@ -5,7 +5,7 @@
         <div class="container">
           <div class="msg-header">
               <div class="active">
-                  <h5>#General 
+                  <h5>#General
                 <span class="badge badge-danger" v-if="unreadCount">
                   {{ unreadCount }}
                 </span>
@@ -43,7 +43,7 @@
                                   <img v-bind:src="message.sender.avatar" alt="" class="avatar">
                                 </div>
                                 <div class="received-msg">
-                                    <div class="received-msg-inbox">
+                                    <div class="received-msg-inbox" style="position: relative">
                                         <p><span>{{ message.sender.uid }}</span><br>{{ message.data.text }}</p>
                                     </div>
                                 </div>
@@ -52,13 +52,13 @@
                             <div class="outgoing-chats" v-else>
                                   <div class="outgoing-chats-msg" style="position: relative;">
                                       <p>{{ message.data.text }}</p>
-                                      <div v-if="sent && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
+                                        <div v-if="status.sentStatus && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
                                          <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="23" height="23" viewBox="0 0 48 48" style=" fill:#000000;">
                                            <path fill="#43A047" d="M40.6 12.1L17 35.7 7.4 26.1 4.6 29 17 41.3 43.4 14.9z"/>
                                          </svg>
                                       </div>
 
-                                        <div v-else-if="delivered && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
+                                          <div v-else-if="status.deliveredStatus && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
                                          <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="23" height="23" viewBox="0 0 226 226" style=" fill:#000000;">
                                             <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray
                                               stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal">
@@ -71,7 +71,7 @@
                                           </svg>
                                       </div>
 
-                                      <div v-tooltip="{content: readers,loadingContent: '<i>Loading...</i>',}" v-else-if="read && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
+                                      <div v-tooltip="{content: readers,loadingContent: '<i>Loading...</i>',}" v-else-if="status.readStatus && messageId == message.id" style="position: absolute; right: 0; bottom: 0;padding: 10px 10px 0 0;">
                                          <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="23" height="23" viewBox="0 0 226 226" style=" fill:#000000;">
                                           <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray
                                             stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal">
@@ -133,19 +133,18 @@ export default {
       loggingOut: false,
       groupMessages: [],
       loadingMessages: false,
-      sent: false,
-      delivered: false,
-      read: false,
       unreadCount: 0,
       readers: [],
+      status: {
+        readStatus: false,
+        sentStatus: false,
+        deliveredStatus: false
+      }
     };
   },
 
-  mounted() {
+  mounted() {  
     this.loadingMessages = true;
-    this.read = true;
-    this.delivered = false;
-    this.sent = false;
     var listenerID = "UNIQUE_LISTENER_ID";
     const messagesRequest = new CometChat.MessagesRequestBuilder()
       .setLimit(100)
@@ -153,15 +152,6 @@ export default {
     messagesRequest.fetchPrevious().then(
       messages => {
         console.log("Message list fetched:", messages);
-
-        messages.forEach(element => {
-          if (element.sender.uid != this.uid) {
-            if (element.readByMeAt == undefined) {
-              this.markMessageAsRead(element);
-            }
-          }
-        });
-
 
         this.groupMessages = [...this.groupMessages, ...messages];
         this.loadingMessages = false;
@@ -182,7 +172,6 @@ export default {
           console.log("Text message received successfully", textMessage);
           this.markMessageAsRead(textMessage);
 
-          this.groupMessages = [...this.groupMessages, textMessage];
           this.loadingMessages = false;
           this.$nextTick(() => {
             this.scrollToBottom();
@@ -190,33 +179,47 @@ export default {
         },
         onMessageDelivered: messageDelivered => {
           console.log("Message has been delivered ", messageDelivered);
-          this.messageId = messageDelivered.messageId;
-          this.read = false;
-          this.delivered = true;
-          this.sent = false;
+
+           setTimeout(() => {
+            this.status.sentStatus = false;
+            this.status.deliveredStatus = true;
+            this.status.readStatus = false;
+          }, 300);
+
         },
         onMessageRead: messageRead => {
-          this.read = true;
-          this.delivered = false;
-          this.sent = false;
+          console.log("Message read", messageRead);
 
-          let messageReaders = [];
+          setTimeout(() => {
+            this.status.sentStatus = false;
+            this.status.deliveredStatus = false;
+            this.status.readStatus = true;
 
-          CometChat.getMessageReceipts(messageRead.messageId).then(receipts => {
-              console.log("Message details receipt fetched:", receipts);
-            
-              receipts.forEach(data => {
-                messageReaders = [...messageReaders, data.sender.uid]
-              });
+            let messageReaders = [];
 
-              this.readers = [...new Set(messageReaders)];
+            CometChat.getMessageReceipts(messageRead.messageId).then(receipts => {
+                console.log("Message details receipt fetched:", receipts);
               
-          }, error => {
-              console.log("Error in getting messag details ", error)
-          });
+                receipts.forEach(data => {
+                  messageReaders = [...messageReaders, data.sender.uid]
+                });
+                this.readers = [...new Set(messageReaders)];
+                
+            }, error => {
+                console.log("Error in getting messag details ", error)
+            });
+          }, 1000);
         }
       })
     );
+
+    window.addEventListener("focus", () => {
+      if(this.uid) {
+      this.groupMessages.forEach(message => this.markMessageAsRead(message));
+      this.CountAndRenderUnread();
+      }
+
+    }, false);
   },
 
   created() {
@@ -232,9 +235,20 @@ export default {
         console.log("Error in getting message count", error);
       }
     );
-
   },
   methods: {
+    CountAndRenderUnread() {
+        let GUID = "supergroup";
+      CometChat.getUnreadMessageCountForGroup(GUID).then(
+        data => {
+          console.log("Message count fetched for unread", data);
+          this.unreadCount = data.supergroup;
+        },
+        error => {
+          console.log("Error in getting message count", error);
+        }
+      );
+    },
     getLoggedInUser() {
       CometChat.getLoggedinUser().then(
         user => {
@@ -274,12 +288,14 @@ export default {
           this.chatMessage = "";
           this.sendingMessage = false;
           // Text Message Sent Successfully
+          this.status.sentStatus = true;
+          this.status.deliveredStatus = false;
+          this.status.readStatus = false;
+
+          Object.assign(message, this.status);
           this.groupMessages = [...globalContext.groupMessages, message];
 
           this.messageId = message.id;
-          this.read = false;
-          this.delivered = false;
-          this.sent = true;
 
           this.$nextTick(() => {
             this.scrollToBottom()
